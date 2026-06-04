@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.log
+*.csv
+
+# Models, checkpoints, zip files
+*.zip
+checkpoints/
+logs/
+_bench_run.log
+_bench_rerun.log
+_bench_results.csv
+_bench_summary.csv
+_sweep_results.csv

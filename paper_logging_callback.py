@@ -1,0 +1,51 @@
+# -*- coding: utf-8 -*-
+"""Paper-Logging-Callback (Engelhardt et al. Fig.2-konform).
+Spielt alle `eval_freq` Trainings-Steps EINE deterministische Eval-Episode und
+loggt (timestep, balance_B, rounds_r, return) in eine CSV. So entstehen die
+gleichen drei Trainingskurven wie im Paper.
+"""
+import os
+import numpy as np
+from stable_baselines3.common.callbacks import BaseCallback
+from sb3_contrib.common.maskable.utils import get_action_masks
+
+
+class PaperMetricsCallback(BaseCallback):
+    def __init__(self, eval_env, eval_freq=2000, csv_path="training_log.csv",
+                 eval_seed=17, verbose=1):
+        super().__init__(verbose)
+        self.eval_env = eval_env
+        self.eval_freq = eval_freq
+        self.csv_path = csv_path
+        self.eval_seed = eval_seed
+        self._last_eval = 0
+        os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
+        with open(self.csv_path, "w", encoding="utf-8") as f:
+            f.write("timestep,balance_B,rounds_r,return\n")
+
+    def _run_eval_episode(self):
+        env = self.eval_env
+        obs, _ = env.reset(seed=self.eval_seed)
+        inner = env.unwrapped
+        ep_return = 0.0
+        B = 0.0
+        done = False
+        while not done:
+            mask = get_action_masks(env)
+            action, _ = self.model.predict(obs, action_masks=mask, deterministic=True)
+            obs, rew, term, trunc, info = env.step(action)
+            ep_return += float(rew)
+            B = float(info.get('eval_balance_B', 0.0))
+            done = term or trunc
+        r = int(inner.V[inner.ROUND])
+        return B, r, ep_return
+
+    def _on_step(self) -> bool:
+        if self.num_timesteps - self._last_eval >= self.eval_freq:
+            self._last_eval = self.num_timesteps
+            B, r, ret = self._run_eval_episode()
+            with open(self.csv_path, "a", encoding="utf-8") as f:
+                f.write(f"{self.num_timesteps},{B:.4f},{r},{ret:.4f}\n")
+            if self.verbose:
+                print(f"  [eval @ {self.num_timesteps:>8}]  B={B:6.2f}  r={r:>2}  return={ret:9.2f}")
+        return True
