@@ -50,6 +50,25 @@ class OekoSurvivalWrapper(gym.Wrapper):
             if is_done:
                 shaped_reward = _balance_eq1(info, round_reached)
 
+        elif self.mode == "marathon":
+            # Evo13-Aggressiv: Survival-Shaping + B-End-Bonus NUR bei R30.
+            # Der B-Bonus kommt ausschliesslich bei Erreichen von R30 -> es gibt
+            # keinen Anreiz, frueh mit hohem B zu sterben (killt die Sprinter-
+            # Strategie). Gedacht fuer hoeheres gamma (0.999) + ent_coef (0.02).
+            shaped_reward = 1.0
+            v_core = unwrapped.V[0:8].astype(np.float64)
+            vmin = unwrapped.Vmin[0:8]; vmax = unwrapped.Vmax[0:8]
+            v_norm = np.clip((v_core - vmin) / (vmax - vmin), 0.0, 1.0)
+            spread = 1.0 - (float(np.max(v_norm)) - float(np.min(v_norm)))
+            shaped_reward += 3.0 * spread
+            ceiling = np.maximum(0.0, v_norm - 0.80)
+            shaped_reward -= 8.0 * float(np.sum(ceiling))
+            if is_done:
+                if round_reached >= 30:
+                    shaped_reward += 50.0 + 25.0 * _balance_eq1(info, round_reached)
+                else:
+                    shaped_reward += -50.0
+
         else:  # "survival" -- Evo12-Gewinner (Spread + Ceiling-Guard)
             shaped_reward = 1.0
             balance_always = info.get('balance (always)', 0.0)

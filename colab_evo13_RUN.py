@@ -14,7 +14,7 @@ und loggt B / r / return dicht. Danach lokal `plot_paper_3panel.py` ausfuehren.
 import os, sys, subprocess
 
 # ---- 0. Konfiguration -------------------------------------------------------
-DRIVE_DIR = "/content/drive/MyDrive/nasuta_evo/release_evo13"
+DRIVE_DIR = "/content/drive/MyDrive/Antigravity/Oekolopoly/release_evo13"
 MODES     = ["survival", "perround"]   # + "balance" fuer reine Paper-Baseline
 SEEDS     = [17, 18, 19, 20, 21]
 TIMESTEPS = 800_000                     # Paper-Standard
